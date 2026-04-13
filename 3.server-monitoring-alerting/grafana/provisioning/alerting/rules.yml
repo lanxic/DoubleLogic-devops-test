@@ -1,0 +1,170 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Valet Service Alerts
+    folder: Monitoring
+    interval: 30s
+    rules:
+
+      # -------------------------------------------------------
+      # CPU Alert
+      # Skenario: buggy client infinite retry → CPU 100%
+      # -------------------------------------------------------
+      - uid: cpu-high-alert
+        title: "[CPU] Usage > 85% selama 2 menit"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus-main
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[2m]))) * 100 > 85
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "[CRITICAL] CPU Usage tinggi - kemungkinan retry storm"
+          description: "CPU usage melebihi 85% selama 2 menit berturut-turut. Periksa apakah ada client yang melakukan infinite retry ke valet check-in service."
+        labels:
+          severity: critical
+          service: valet
+        isPaused: false
+
+      # -------------------------------------------------------
+      # Memory Alert
+      # -------------------------------------------------------
+      - uid: memory-high-alert
+        title: "[Memory] Usage > 85% selama 2 menit"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus-main
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "[CRITICAL] Memory Usage tinggi"
+          description: "Memory usage melebihi 85% selama 2 menit. Risiko: aplikasi crash dan valet check-in service tidak bisa melayani pelanggan."
+        labels:
+          severity: critical
+          service: valet
+        isPaused: false
+
+      # -------------------------------------------------------
+      # Disk Alert
+      # -------------------------------------------------------
+      - uid: disk-high-alert
+        title: "[Disk] Usage > 85% selama 5 menit"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus-main
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs"})) * 100 > 85
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "[WARNING] Disk Usage tinggi"
+          description: "Disk pada mount point {{ $labels.mountpoint }} melebihi 85%. Bersihkan log lama atau tambah kapasitas storage segera."
+        labels:
+          severity: warning
+          service: valet
+        isPaused: false
+
+      # -------------------------------------------------------
+      # HTTP Non-2xx Alert
+      # Fix: gunakan (1 - probe_success) agar return value 1
+      # saat error, bukan 0 (value 0 tidak fire di Grafana)
+      # -------------------------------------------------------
+      - uid: http-non-2xx-alert
+        title: "[HTTP] Non-2xx Response Detected"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus-main
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: 1 - probe_success{job="blackbox"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 30s
+        annotations:
+          summary: "[CRITICAL] API endpoint mengembalikan response error"
+          description: "Endpoint {{ $labels.instance }} gagal diprobe. Response bukan 2xx. Cek apakah service valet check-in masih berjalan."
+        labels:
+          severity: critical
+          service: valet
+        isPaused: false
+
+      # -------------------------------------------------------
+      # Custom Alert: API Error Rate > 5% selama 2 menit
+      #
+      # Formula:
+      #   error_rate = (jumlah endpoint gagal / total endpoint) * 100
+      #
+      # Logika: jika >= 1 dari 2 endpoint blackbox gagal → 50% error rate
+      # → jauh di atas threshold 5% → alert fire setelah 2 menit
+      #
+      # Tujuan: deteksi retry storm SEBELUM pelanggan mengeluh
+      # -------------------------------------------------------
+      - uid: api-error-rate-alert
+        title: "[API] Error Rate > 5% selama 2 menit - Retry Storm Detected"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus-main
+            queryType: ''
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: (sum(1 - probe_success{job="blackbox"}) / count(probe_success{job="blackbox"})) * 100 > 5
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "[CRITICAL] API Error Rate > 5% - Notify Tim Segera!"
+          description: "Error rate API melebihi 5% selama 2 menit berturut-turut. Dugaan: buggy client melakukan infinite retry yang menyebabkan server overload. Ambil tindakan: identifikasi dan hentikan client penyebab retry storm pada valet check-in service."
+        labels:
+          severity: critical
+          service: valet
+          alert_type: retry_storm
+        isPaused: false

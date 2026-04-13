@@ -1,0 +1,12 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: email-mailpit
+    receivers:
+      - uid: email-mailpit-receiver
+        type: email
+        settings:
+          addresses: admin@valet-service.com
+          singleEmail: false
+        disableResolveMessage: false
