@@ -1,0 +1,78 @@
+services:
+  # ─── Backend Instances (Load Balanced) ────────────────────────────────────────
+  app1:
+    image: node:18-slim
+    container_name: app1
+    working_dir: /app
+    volumes:
+      - ./server.js:/app/server.js
+    command: node server.js
+    environment:
+      - INSTANCE_ID=app1
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app2:
+    image: node:18-slim
+    container_name: app2
+    working_dir: /app
+    volumes:
+      - ./server.js:/app/server.js
+    command: node server.js
+    environment:
+      - INSTANCE_ID=app2
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  app3:
+    image: node:18-slim
+    container_name: app3
+    working_dir: /app
+    volumes:
+      - ./server.js:/app/server.js
+    command: node server.js
+    environment:
+      - INSTANCE_ID=app3
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─── Nginx – Rate Limiter + Load Balancer ─────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+      app3:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
