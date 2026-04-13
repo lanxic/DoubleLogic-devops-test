@@ -1,0 +1,54 @@
+$ ab -n 2000 -c 1000 http://localhost:8080/api/v1/parking-zones
+This is ApacheBench, Version 2.3 <$Revision: 1879490 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient)
+Completed 200 requests
+Completed 400 requests
+Completed 600 requests
+Completed 800 requests
+Completed 1000 requests
+Completed 1200 requests
+Completed 1400 requests
+Completed 1600 requests
+Completed 1800 requests
+Completed 2000 requests
+Finished 2000 requests
+
+
+Server Software:        nginx/1.29.8
+Server Hostname:        localhost
+Server Port:            8080
+
+Document Path:          /api/v1/parking-zones
+Document Length:        103 bytes
+
+Concurrency Level:      1000
+Time taken for tests:   0.715 seconds
+Complete requests:      2000
+Failed requests:        0
+Total transferred:      506000 bytes
+HTML transferred:       206000 bytes
+Requests per second:    2795.38 [#/sec] (mean)
+Time per request:       357.733 [ms] (mean)
+Time per request:       0.358 [ms] (mean, across all concurrent requests)
+Transfer rate:          690.65 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0   32  17.2     36      67
+Processing:    25  258  93.3    248     435
+Waiting:        1  252  89.1    243     435
+Total:         57  291  82.6    283     464
+
+Percentage of the requests served within a certain time (ms)
+  50%    283
+  66%    341
+  75%    362
+  80%    372
+  90%    394
+  95%    410
+  98%    424
+  99%    445
+ 100%    464 (longest request)

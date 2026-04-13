@@ -1,0 +1,24 @@
+services:
+  # Service API Dummy
+  api:
+    image: node:18-slim
+    container_name: parking-api
+    working_dir: /app
+    volumes:
+      - ./server.js:/app/server.js
+    command: node server.js
+
+  # Service Nginx yang di-optimize
+  nginx:
+    image: nginx:alpine
+    container_name: parking-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf.cache:/etc/nginx/nginx.conf:ro
+      - parking_cache:/var/cache/nginx/parking_cache
+    depends_on:
+      - api
+
+volumes:
+  parking_cache:
