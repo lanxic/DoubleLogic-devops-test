@@ -15,7 +15,7 @@ DATABASE = os.getenv("DB_DATABASE")
 RCLONE_DIR = os.getenv("RCLONE_DIR", "rclone-gdrive")
 
 # Path untuk Wallet Logs
-WALLET_LOGS_PATH = "/data/wallet_logs"
+WALLET_LOGS_PATH = "/home/me/src/repo/github/lanxic/test-hr/DoubleLogic-devops-test/1.backup-data-integrity/wallet_logs"
 DATE_STR = datetime.now().strftime("%Y%m%d")
 
 def backup_all():
@@ -48,8 +48,8 @@ def restore_all(backup_date):
     try:
         # Variabel file berdasarkan tanggal input
         db_gz = f"{backup_date}_{DATABASE}.sql.gz"
-        db_sql = f"{backup_date}_{DATABASE}.sql"
-        log_tar = f"{backup_date}_wallet_logs.tar.gz"
+        db_sql = f"{RCLONE_DIR}/{backup_date}_{DATABASE}.sql"
+        log_tar = f"{RCLONE_DIR}/{backup_date}_wallet_logs.tar.gz"
 
         # --- 1. RESTORE DATABASE ---
         db_path = os.path.join(RCLONE_DIR, db_gz)
@@ -66,7 +66,7 @@ def restore_all(backup_date):
             cursor.execute(f"CREATE DATABASE {DATABASE}")
             conn.close()
             
-            subprocess.run(f"mysql -h {HOST} -u {USER} -p'{PASSWORD}' {DATABASE} < {db_sql}", shell=True, check=True)
+            subprocess.run(f"/usr/bin/mysql -h {HOST} -u {USER} -p'{PASSWORD}' {DATABASE} < {db_sql}", shell=True, check=True)
             os.remove(db_sql)
             print("[V] Database berhasil dipulihkan.")
         
@@ -75,7 +75,7 @@ def restore_all(backup_date):
         if os.path.exists(log_path):
             print(f"[*] Me-restore wallet logs dari {log_tar}...")
             # Ekstrak kembali ke folder asal (pastikan folder tujuan ada)
-            subprocess.run(["tar", "-xzf", log_path, "-C", "/"], check=True)
+            subprocess.run(["tar", "-xzf", log_path, "-C", "."], check=True)
             print("[V] Wallet logs berhasil dipulihkan ke /data/wallet_logs.")
 
     except Exception as e:
